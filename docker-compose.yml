@@ -1,0 +1,100 @@
+version: '3.5'
+
+services:
+  ceryx:
+    image: sourcelair/ceryx:latest
+    ports:
+      - ${CERYX_EXTERNAL_PORT:-80}:80
+      - ${CERYX_EXTERNAL_SSL_PORT:-443}:443
+    depends_on:
+      - redis
+    environment:
+      CERYX_DISABLE_LETS_ENCRYPT: ${CERYX_DISABLE_LETS_ENCRYPT:-false}
+      CERYX_DOCKERIZE_EXTRA_ARGS: -no-overwrite
+      CERYX_REDIS_HOST: ${CERYX_REDIS_HOST:-redis}
+      CERYX_REDIS_PORT: ${CERYX_REDIS_PORT:-6379}
+    command:
+      - usr/local/openresty/bin/openresty
+      - -g
+      - daemon off;
+
+  api:
+    image: sourcelair/ceryx-api:latest
+    depends_on:
+      - redis
+      - ceryx
+    environment:
+      CERYX_API_HOST: ${CERYX_API_HOST:-0.0.0.0}
+      CERYX_API_HOSTNAME: ${CERYX_API_HOSTNAME:-localhost}
+      CERYX_API_PORT: ${CERYX_API_PORT:-5555}
+      CERYX_DEBUG: ${CERYX_DEBUG:-false}
+      CERYX_REDIS_HOST: ${CERYX_REDIS_HOST:-redis}
+      CERYX_REDIS_PORT: ${CERYX_REDIS_PORT:-6379}
+
+  redis:
+    image: redis:3.2.11-alpine
+    volumes:
+      - redis_data:/data
+
+  plex:
+    build: configurable-plex
+    restart: unless-stopped
+    expose:
+      - "32400"
+    ports:
+      - "32400:32400/tcp"
+      - "3005:3005/tcp"
+      - "8324:8324/tcp"
+      - "32469:32469/tcp"
+#      - "80:80/tcp"
+      #- "1900:1900/udp"
+      - "32410:32410/udp"
+      - "32412:32412/udp"
+      - "32413:32413/udp"
+      - "32414:32414/udp"
+    hostname: plex_server
+    env_file:
+      - .env
+    environment:
+      - VIRTUAL_HOST=plex.${DOMAIN}
+      - VIRTUAL_PORT=32400
+      - PLEX_UID=${PUID}
+      - PLEX_GID=${PGID}
+    volumes:
+      #- /share/Multimedia/Configurations/Plex:/config
+      - /tmp:/transcode
+      - /share/Data:/data:shared
+      - /share/Data:
+    depends_on:
+      - rc-mount
+
+  rc-mount:
+    image: tynor88/rclone-mount:dev
+    security_opt:
+      - apparmor:unconfine
+    devices:
+      - /dev/fuse
+    cap_add:
+      - sys_admin
+    volumes:
+      - /share/Data:/data:shared
+      - /share/Multimedia/Configurations/rc-mount:/config
+    environment:
+      - RCLONE_REMOTE_MOUNT=remote:${B2_BUCKET}
+      - RCLONE_MOUNT_OPTIONS=--buffer-size 1G --timeout 5s --contimeout 5s --cache-total-chunk-size 2G -v --vfs-cache-mode writes
+      - RCLONE_CONFIG_REMOTE_TYPE=b2
+      - RCLONE_CONFIG_REMOTE_ACCOUNT=${B2_ACCOUNT}
+      - RCLONE_CONFIG_REMOTE_KEY=${B2_KEY}
+      - MOUNT_UID=1000
+      - MOUNT_GID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
+
+networks:
+  default:
+    attachable: true
+    driver: overlay
+    name: ceryx
+
+volumes:
+  redis_data:
