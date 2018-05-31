@@ -1,0 +1,16 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% if current_user.is_authenticated %}
+{{ nav.loggedtop.render() }}
+{% else %}
+{{ nav.top.render() }}
+{% endif %}
+
+{% block body_content %}
+<div class="container-fluid">
+    {% block container %}
+    {% endblock %}
+</div>
+
+{% endblock %}
