@@ -1,0 +1,18 @@
+{% extends "base_layout.html" %}
+
+{% block container %}
+<div class="row-fluid">
+    <div class="span12">
+        <h1>Plex PIN Sign-in</h1>
+        <div>We </div>
+        <form class="form form-horizontal" action="{{ url_for('pin_signin') }}" method="POST" name="pin_signin_form">
+            {{ pin_signin_form.hidden_tag() }}
+            {{ wtf.horizontal_field(pin_signin_form.pin) }}
+            <div class="controls">
+                <button class="btn btn-primary" type="submit">Register</button>
+            </div>
+            <div>Go there and enter the PIN<a href="http://plex.tv/link"></a></div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -20,3 +20,4 @@ passlib
 SQLAlchemy
 Werkzeug
 WTForms
+requests

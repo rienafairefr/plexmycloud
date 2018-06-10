@@ -1,12 +1,12 @@
 {% extends "bootstrap/base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
-
+{% block navbar %}
 {% if current_user.is_authenticated %}
-{{ nav.loggedtop.render() }}
+{{ nav.logged.render() }}
 {% else %}
 {{ nav.top.render() }}
 {% endif %}
-
+{% endblock %}
 {% block body_content %}
 <div class="container-fluid">
     {% block container %}
