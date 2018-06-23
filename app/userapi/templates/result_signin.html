@@ -1,0 +1,13 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+{% if signed_in %}
+<div class="row-fluid">
+    Sign-in successful !
+</div>
+{% else %}
+<div class="row-fluid">
+    There was an error in the sign-in process :-(
+</div>
+{% endif %}
+{% endblock %}

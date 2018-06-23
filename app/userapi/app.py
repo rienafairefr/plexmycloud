@@ -7,11 +7,19 @@ from flask_bootstrap import Bootstrap
 from flask_mail import Mail
 from flask_security import UserMixin, RoleMixin
 from flask_nav import Nav
+from flask_wtf import Form
 from sqlalchemy import Integer, Column, ForeignKey, String, Boolean, DateTime
 from sqlalchemy.orm import backref, relationship
+from wtforms import StringField, SubmitField, HiddenField, BooleanField
 
 from plex_lib import plex
 from plex_lib.plex_signin import plex_signin
+from sqlalchemy.types import TypeDecorator, CHAR
+from sqlalchemy_utils.types.uuid import UUIDType
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+
+from userapi.plex_signin import get_goto_url, get_plex_token
 
 app = Flask(__name__)
 
@@ -21,7 +29,9 @@ app.config.update(
     SECRET_KEY='James Bond',
     SECURITY_REGISTERABLE=True,
     SECURITY_PASSWORD_SALT='salt',
-    SECURITY_POST_REGISTER_VIEW='sign_in'
+    SECURITY_POST_REGISTER_VIEW='sign_in',
+    SECURITY_LOGIN_USER_TEMPLATE='login_user.html',
+    SECURITY_REGISTER_USER_TEMPLATE='register_user.html',
 )
 
 db = SQLAlchemy(app)
@@ -69,18 +79,19 @@ class User(db.Model, UserMixin):
     roles = relationship('Role', secondary=roles_users,
                             backref=backref('users', lazy='dynamic'))
 
-    token_id = Column(ForeignKey('token_cache.id'))
-    token = relationship('TokenCache', foreign_keys=[token_id])
+    token_id = Column(ForeignKey('token.id'))
+    token = relationship('Token', foreign_keys=[token_id])
+
     
-    
-class TokenCache(db.Model):
+class Token(db.Model):
     id = Column(Integer, primary_key=True)
 
     user_id = Column(ForeignKey('user.id'))
     user = relationship('User', foreign_keys=[user_id])
 
     signed_in = Column(Boolean)
-    user_cache = Column(String)
+    client_identifier = Column(UUIDType, default=uuid.uuid4(), unique=True, nullable=True)
+    value = Column(String)
 
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore)
@@ -94,6 +105,7 @@ def setupDatabase():
     user.email='test@test.com'
     user.password='test'
     user.active = True
+    user.token = Token()
     session.add(user)
     session.commit()
 
@@ -103,16 +115,37 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/sign_in')
+class PinData(object):
+    identifier = None
+    pin = None
+    valid = False
+
+
+class PinSigninForm(Form):
+    pin = StringField()
+    identifier = HiddenField()
+    submit = SubmitField()
+    valid = BooleanField()
+
+
+@app.route('/sign_in', methods=['GET', 'POST'])
 def sign_in():
     if not current_user.token or not current_user.token.signed_in:
         pass
-    signin = plex_signin()
-    plex_network = plex.Plex(load=False)
-    signin.set_authentication_target(plex_network)
-    data = signin.plex_network.get_signin_pin()
-    return render_template('pin_signin.html')
+
+    goto_url = get_goto_url(current_user)
+    return render_template('plex_signin.html', goto_url=goto_url)
 
 
+@app.route('/plex_forward/<int:pin_id>')
+def plex_forward(pin_id):
+    if not current_user.token or not current_user.token.signed_in:
+        pass
+    try:
+        current_user.token.value = get_plex_token(pin_id, current_user)
+        db.session.commit()
+        return render_template('result_signin.html', signed_in=True)
+    except:
+        return render_template('result_signin.html', signed_in=False)
 if __name__ == '__main__':
     app.run()

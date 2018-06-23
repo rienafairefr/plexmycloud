@@ -1,15 +1,15 @@
 {% extends "base_layout.html" %}
 
-{% block container %}
+{% block content %}
 <div class="row-fluid">
     <div class="span12">
 
         <h1>Login</h1>
         <form class="form form-horizontal" action="{{ url_for_security('login') }}" method="POST" name="login_user_form">
             {{ login_user_form.hidden_tag() }}
-            {{ wtf.horizontal_field(login_user_form.email) }}
-            {{ wtf.horizontal_field(login_user_form.password) }}
-            {{ wtf.horizontal_field(login_user_form.remember) }}
+            {{ wtf.form_field(login_user_form.email , horizontal_columns=('lg', 2, 4)) }}
+            {{ wtf.form_field(login_user_form.password , horizontal_columns=('lg', 2, 4)) }}
+            {{ wtf.form_field(login_user_form.remember , horizontal_columns=('lg', 2, 4)) }}
             <div class="controls">
                 <button class="btn btn-primary" type="submit">Login</button>
             </div>

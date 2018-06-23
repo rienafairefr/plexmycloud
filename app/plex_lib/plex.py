@@ -1,11 +1,27 @@
 import xml.etree.ElementTree as etree
 import base64
 import requests
+from flask import current_app
+from flask_login import current_user
+
 from plexserver import PlexMediaServer
 import urlparse
 import uuid
 
 DEFAULT_PORT="32400"
+
+class PrintDebug(object):
+    def debug(self, param):
+        print(param)
+
+    def info(self, param):
+        print(param)
+
+    def debugplus(self, param):
+        print(param)
+
+
+printDebug = PrintDebug()
 
 class Plex(object):
 
@@ -51,6 +67,7 @@ class Plex(object):
                  'code' : list(code) }
 
     def check_signin_status(self,identifier):
+
         data = self.talk_to_myplex('/pins/%s.xml' % identifier, type="get2")
         xml = etree.fromstring(data)
         temp_token=xml.find('auth_token').text
@@ -116,26 +133,13 @@ class Plex(object):
         printDebug.debug("Server list is now: %s" % self.server_list)
 
     def setup_user_token(self):
-        if self.plexhome_settings['myplex_signedin']:
+        if current_user.token and current_user.token.signed_in:
             printDebug.debug("Myplex is logged in")
         else:
             return
 
-        self.myplex_user, self.myplex_token = self.plexhome_settings['myplex_user_cache'].split('|')
-
-        if self.plexhome_settings['plexhome_enabled']:
-            printDebug.debug("Plexhome is enabled")
-
-        try:
-            self.effective_user, self.effective_token = self.plexhome_settings['plexhome_user_cache'].split('|')
-        except:
-            printDebug.info("No user set.  Will default to admin user")
-            self.effective_user = self.myplex_user
-            self.effective_token = self.myplex_token
-            self.save_tokencache()
-
-        printDebug.info("myplex userid: %s" % self.myplex_user)  
-        printDebug.info("effective userid: %s" % self.effective_user)
+        self.myplex_user = current_user.token.user_cache_user
+        self.myplex_token = current_user.token.user_cache_token
 
     def load_tokencache(self):
 
@@ -198,17 +202,17 @@ class Plex(object):
         return self.server_list.values()
 
     def plex_identification(self):
-        header = {'X-Plex-Device'            : 'PleXBMC' ,
-                  'X-Plex-Client-Platform'   : 'KODI' ,
-                  'X-Plex-Device-Name'       : settings.get_setting('devicename') ,
+        identifier = current_app.config.get('PLEX-DEVICE-NAME', 'PlexMyCloud')
+        header = {'X-Plex-Device'            : identifier ,
+                  'X-Plex-Client-Platform'   : identifier,
+                  'X-Plex-Device-Name'       : identifier,
                   'X-Plex-Language'          : 'en',
                   'X-Plex-Model'             : 'unknown' ,
-                  'X-Plex-Platform'          : 'PleXBMC' ,
+                  'X-Plex-Platform'          : identifier ,
                   'X-Plex-Client-Identifier' : self.get_client_identifier() ,
-                  'X-Plex-Product'           : 'PleXBMC' ,
-                  'X-Plex-Platform-Version'  : GLOBAL_SETUP['platform'],
-                  'X-Plex-Version'           : GLOBAL_SETUP['__version__']  ,
-                  'X-Plex-Provides'          : "player"}
+                  'X-Plex-Product'           : identifier ,
+                  'X-Plex-Platform-Version'  : current_app.config.get('PLEX-PLATFORM', '3.141516'),
+                  'X-Plex-Version'           : current_app.config.get('PLEX-VERSION', '0.9')}
         if self.effective_token is not None:
             header['X-Plex-Token'] = self.effective_token
 
@@ -217,11 +221,11 @@ class Plex(object):
     def get_client_identifier(self):
 
         if self.client_id is None:
-            self.client_id = settings.get_setting('client_id')
+            self.client_id = current_app.config.get('PLEX-CLIENT-ID')
 
             if not self.client_id:
                 self.client_id = str(uuid.uuid4())
-                settings.set_setting('client_id', self.client_id)
+                current_app.config['PLEX-CLIENT-ID'] = self.client_id
 
         return self.client_id
 

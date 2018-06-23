@@ -1,15 +1,15 @@
 {% extends "base_layout.html" %}
 
-{% block container %}
+{% block content %}
 <div class="row-fluid">
     <div class="span12">
         <h1>Register</h1>
         <form class="form form-horizontal" action="{{ url_for_security('register') }}" method="POST" name="register_user_form">
             {{ register_user_form.hidden_tag() }}
-            {{ wtf.horizontal_field(register_user_form.email) }}
-            {{ wtf.horizontal_field(register_user_form.password) }}
+            {{ wtf.form_field(register_user_form.email, horizontal_columns=('lg', 2, 4)) }}
+            {{ wtf.form_field(register_user_form.password, horizontal_columns=('lg', 2, 4)) }}
             {% if register_user_form.password_confirm %}
-            {{ wtf.horizontal_field(register_user_form.password_confirm) }}
+            {{ wtf.form_field(register_user_form.password_confirm, horizontal_columns=('lg', 2, 4)) }}
             {% endif %}
             <div class="controls">
                 <button class="btn btn-primary" type="submit">Register</button>

@@ -13,8 +13,7 @@ class plex_signin(object):
 
     def display_pin(self, failure=False):
         self.data = self.plex_network.get_signin_pin()
-
-        digits = self.data['code']
+        self.identifier = self.data['id']
 
 
 
