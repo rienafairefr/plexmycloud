@@ -1,0 +1,16 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+<div class="row-fluid">
+    <div class="span12">
+    Open <a href="https://www.plex.tv/claim/">this</a> then copy the claim token below
+    <form class="form form-horizontal" action="{{ url_for('plex_claim') }}" method="POST" name="plex_claim_form">
+        {{ plex_claim_form.hidden_tag() }}
+        {{ wtf.form_field(plex_claim_form.claim , horizontal_columns=('lg', 2, 4)) }}
+        <div class="controls">
+            <button class="btn btn-primary" type="submit">Submit</button>
+        </div>
+    </form>
+    </div>
+</div>
+{% endblock %}

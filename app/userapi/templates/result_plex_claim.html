@@ -1,0 +1,13 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+{% if claimed %}
+<div class="row-fluid">
+    Plex Server claim successful !
+</div>
+{% else %}
+<div class="row-fluid">
+    There was an error in the Plex claim process :-(
+</div>
+{% endif %}
+{% endblock %}

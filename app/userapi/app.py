@@ -1,6 +1,10 @@
+import os
+
+import requests
 from flask import Flask, render_template
-from flask_login import current_user
-from flask_nav.elements import Navbar, View
+from flask.cli import load_dotenv
+from flask_login import current_user, login_required
+from flask_nav.elements import Navbar, View, Subgroup
 from flask_security import SQLAlchemyUserDatastore, Security
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
@@ -55,12 +59,17 @@ def top():
 
 @nav.navigation()
 def logged():
-    return Navbar(
-        'mysite',
+    navbar = Navbar(
+        'mysite')
+    navbar.items=[
         View('Home', 'index'),
-        View('Plex Sign In', 'sign_in'),
-        View('Logout', 'security.logout'),
-    )
+    ]
+    if current_user.token.value is not None:
+        navbar.items.append(View('Plex Claim', 'plex_claim'))
+    else:
+        navbar.items.append(View('Plex Sign In', 'sign_in'))
+    navbar.items.append(View('Logout', 'security.logout'))
+    return navbar
 
 
 
@@ -99,6 +108,7 @@ security = Security(app, user_datastore)
 
 @app.before_first_request
 def setupDatabase():
+    load_dotenv()
     db.create_all()
     session = db.session
     user = User()
@@ -106,6 +116,7 @@ def setupDatabase():
     user.password='test'
     user.active = True
     user.token = Token()
+    user.token.value = os.environ.get('TEST_PLEX_TOKEN')
     session.add(user)
     session.commit()
 
@@ -129,6 +140,7 @@ class PinSigninForm(Form):
 
 
 @app.route('/sign_in', methods=['GET', 'POST'])
+@login_required
 def sign_in():
     if not current_user.token or not current_user.token.signed_in:
         pass
@@ -138,6 +150,7 @@ def sign_in():
 
 
 @app.route('/plex_forward/<int:pin_id>')
+@login_required
 def plex_forward(pin_id):
     if not current_user.token or not current_user.token.signed_in:
         pass
@@ -147,5 +160,33 @@ def plex_forward(pin_id):
         return render_template('result_signin.html', signed_in=True)
     except:
         return render_template('result_signin.html', signed_in=False)
+
+
+class PlexClaimForm(Form):
+    claim = StringField()
+
+
+@app.route('/plex_claim', methods=['POST', 'GET'])
+@login_required
+def plex_claim():
+    if not current_user.token or not current_user.token.signed_in:
+        pass
+    form = PlexClaimForm()
+    if form.validate_on_submit():
+        plex_creator = os.environ.get('PLEX_CREATOR')
+        if plex_creator:
+            requests.post('%s/create', data={
+                'user': current_user.id,
+                'claim': form.claim.data
+            })
+
+            return render_template('result_plex_claim.html', claimed=True)
+        else:
+            return render_template('result_plex_claim.html', claimed=False)
+    else:
+        return render_template('plex_claim.html', plex_claim_form=form, claimed=False)
+
+
+
 if __name__ == '__main__':
     app.run()
