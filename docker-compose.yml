@@ -90,6 +90,14 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
 
+  userapi:
+    build: userapi
+    environment:
+      - PLEX_CREATOR: plex_creator
+
+  plex_creator:
+    build: plex_creator
+
 networks:
   default:
     attachable: true

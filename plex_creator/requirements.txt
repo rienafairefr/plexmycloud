@@ -1,0 +1,8 @@
+Flask-Script
+Flask
+gunicorn
+itsdangerous
+Jinja2
+Werkzeug
+requests
+kubernetes
