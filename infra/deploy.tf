@@ -20,7 +20,7 @@ module "digital-ocean-nemo" {
 
   # configuration
   ssh_fingerprints = ["d6:89:e8:4c:1c:40:ab:41:3f:94:94:0d:0e:7f:fc:44"]
-  asset_dir        = "pathexpand(~/.secrets/clusters/nemo)"
+  asset_dir        = "${pathexpand("~/.secrets/clusters/nemo")}"
 
   # optional
   worker_count = 1
